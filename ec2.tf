@@ -1,33 +1,41 @@
-provider "aws" {
-  region = "eu-west-2"
-  access_key = "${var.access_key}"
-  secret_key = "${var.secret_key}"
+provider "google" {
+  credentials = file("cred.json")
+  project     = "cloudglobaldelivery-1000135575"
+  region      = "us-central1"
 }
+resource "google_compute_instance" "default" {
+  name         = "jk-testvm"
+  machine_type = "n1-standard-1"
+  zone         = "us-central1-a"
 
-data "aws_ami" "ubuntu" {
-  most_recent = true
+  tags = ["foo", "bar"]
 
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-9"
+    }
   }
 
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
+  // Local SSD disk
+  scratch_disk {
+    interface = "SCSI"
   }
 
-  owners = ["099720109477"]
-}
+  network_interface {
+    network = "default"
 
-resource "aws_instance" "web" {
-  ami           = "${data.aws_ami.ubuntu.id}"
-  instance_type = "t2.micro"
-
-  tags {
-    Name = "HelloWorld"
+    access_config {
+      // Ephemeral IP
+    }
   }
-}
-output "ip"{
-value= "${aws_instance.web.public_ip}"
+
+  metadata = {
+    foo = "bar"
+  }
+
+  metadata_startup_script = "echo hi > /test.txt"
+
+  service_account {
+    scopes = ["userinfo-email", "compute-ro", "storage-ro"]
+  }
 }
